@@ -13,12 +13,10 @@ public class Polygon {
 	
 	private RotatedRect boundingBox;
 	private Point[] points;
-	private double ratio;
 	
-	public Polygon(MatOfPoint2f points, double ratio){
+	public Polygon(MatOfPoint2f points){
 		this.points = points.toArray();
 		boundingBox = Imgproc.minAreaRect(points);
-		this.ratio = ratio;
 	}
 	
 	public int getNumVertices(){
@@ -46,8 +44,4 @@ public class Polygon {
 		return boundingBox.center;
 	}
 	
-	public double getRatio(){
-		return ratio;
-	}
-
 }

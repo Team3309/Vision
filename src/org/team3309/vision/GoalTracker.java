@@ -83,6 +83,7 @@ public class GoalTracker {
 
 	public GoalTracker(boolean debug) {
 		m_debugMode = debug;
+		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
 				new Size(3, 3));
 		// morphKernel = IplConvKernel.create(3, 3, 1, 1, Imgproc.CV_SHAPE_RECT,
@@ -129,7 +130,7 @@ public class GoalTracker {
 		return 5234.0 + kRangeOffset;
 	}
 
-	public Mat processImage(Mat rawImage) {
+	public Goal processImage(Mat rawImage, VisionFrame resultFrame) {
 		double heading = 0.0;
 
 		/*
@@ -203,7 +204,7 @@ public class GoalTracker {
 					&& bounding.size.height < kMaxWidth) {
 				MatOfPoint2f approxCurve = new MatOfPoint2f();
 				Imgproc.approxPolyDP(c, approxCurve, 20, true);
-				polygons.add(new Polygon(approxCurve, ratio));
+				polygons.add(new Polygon(approxCurve));
 			}
 		}
 
@@ -249,6 +250,10 @@ public class GoalTracker {
 			}
 		}
 
+		// Draw a crosshair
+		if (m_debugMode)
+			Core.line(rawImage, linePt1, linePt2, targetColor, 2);
+
 		if (square != null) {
 			double x = square.getCenter().x;
 			x = (2 * (x / size.width)) - 1;
@@ -263,16 +268,9 @@ public class GoalTracker {
 			double angle = Math.toDegrees(Math.atan2(kTopTargetHeightIn
 					- kShooterHeight, range));
 			double rpms = getRPMsForRange(range);
+			
+			Goal target = new Goal(square, range, azimuth, angle);
 
-			/*
-			 * if (!m_debugMode) {
-			 * 
-			 * Robot.getTable().beginTransaction();
-			 * Robot.getTable().putBoolean("found", true);
-			 * Robot.getTable().putDouble("azimuth", azimuth);
-			 * Robot.getTable().putDouble("rpms", rpms);
-			 * Robot.getTable().endTransaction(); } else {
-			 */
 			System.out.println("Target found");
 			System.out.println("x: " + x);
 			System.out.println("y: " + y);
@@ -280,24 +278,20 @@ public class GoalTracker {
 			System.out.println("range: " + range);
 			System.out.println("angle deg: " + angle);
 			System.out.println("rpms: " + rpms);
-			// }
 			Core.polylines(rawImage, square.getMatOfPointsList(), true,
 					targetColor, 7);
-			Core.putText(rawImage, String.valueOf(Math.round(angle)), square.getCenter(), Core.FONT_HERSHEY_COMPLEX, 1, new Scalar(255,0,0));
+			Core.putText(rawImage, String.valueOf(Math.round(angle)),
+					square.getCenter(), Core.FONT_HERSHEY_COMPLEX, 1,
+					new Scalar(255, 0, 0));
+			if (resultFrame != null)
+				resultFrame.show(rawImage);
+			
+			return target;
 		} else {
-
-			if (!m_debugMode) {
-				// Robot.getTable().putBoolean("found", false);
-			} else {
-				System.out.println("Target not found");
-			}
+			if(resultFrame != null)
+				resultFrame.show(rawImage);
+			return null;
 		}
-
-		// Draw a crosshair
-		if (m_debugMode)
-			Core.line(rawImage, linePt1, linePt2, targetColor, 2);
-
-		return rawImage;
 	}
 
 	private double boundAngle0to360Degrees(double angle) {
@@ -309,59 +303,6 @@ public class GoalTracker {
 			angle += 360.0;
 		}
 		return angle;
-	}
-
-	public static void main(String[] args) {
-		// Load the native library
-		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-
-		// Create the widget
-		GoalTracker widget = new GoalTracker(true);
-
-		// Load the image
-		Mat rawImage = null;
-		rawImage = Highgui
-				.imread("/home/vmagro/workspace/JavaTest/sample1.png");
-
-		Mat resultImage = null;
-
-		// Process image
-		long startTime, endTime;
-		startTime = System.nanoTime();
-		resultImage = widget.processImage(rawImage);
-		endTime = System.nanoTime();
-
-		// Display results
-		double milliseconds = (double) (endTime - startTime) / 1000000.0;
-		System.out.format("Processing took %.2f milliseconds%n", milliseconds);
-		System.out.format("(%.2f frames per second)%n", 1000.0 / milliseconds);
-
-		VisionFrame frame = new VisionFrame("result");
-		frame.show(resultImage);
-
-		boolean useVideoImages = true;
-		if (useVideoImages) {
-			File imagesFolder = new File("/home/vmagro/Downloads/987vid/images");
-			ArrayList<String> files = new ArrayList<String>(
-					Arrays.asList(imagesFolder.list()));
-			Collections.sort(files);
-			for (String file : files) {
-				System.out.println("\n\nreading from " + file + "\n\n");
-				rawImage = Highgui
-						.imread("/home/vmagro/Downloads/987vid/images/" + file);
-				resultImage = widget.processImage(rawImage);
-				frame.show(resultImage);
-				Highgui.imwrite("/home/vmagro/Downloads/987vid/processed/"
-						+ file, resultImage);
-				try {
-					Thread.sleep(100); // 10fps
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-
-			}
-		}
-
 	}
 
 	public static MatOfPoint2f[] findConvexContours(Mat image) {
