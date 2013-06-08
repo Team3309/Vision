@@ -24,7 +24,7 @@ import org.opencv.imgproc.Imgproc;
  * @author jrussell
  * @author vmagro
  */
-public class DaisyVision {
+public class GoalTracking {
 	private Scalar targetColor = new Scalar(255, 0, 0);
 
 	// Constants that need to be tuned
@@ -39,25 +39,25 @@ public class DaisyVision {
 	private static final int kHueThresh = 50 - 25;// 60-15 for daisy 2012
 	private static final int kSatThresh = 75; // 200 for daisy 2012
 	private static final int kValThresh = 200; // 55 for daisy 2012
-	private static final double kMinRatio = .15; //.5 for daisy 2012
-	private static final double kMaxRatio = .75; //1 for daisy 2012
+	private static final double kMinRatio = .15; // .5 for daisy 2012
+	private static final double kMaxRatio = .75; // 1 for daisy 2012
 
-	private static final double kShooterOffsetDeg = -1.55;
+	private static final double kShooterOffsetDeg = 0; // the shooter may not be
+														// perfectly aligned
+														// with the base
+	private static final double kShooterHeight = 20; // the height to the pivot
+														// point of the arm
+
 	private static final double kHorizontalFOVDeg = 47.0;
-
 	private static final double kVerticalFOVDeg = 480.0 / 640.0 * kHorizontalFOVDeg;
 	private static final double kCameraHeightIn = 54.0;
 	private static final double kCameraPitchDeg = 21.0;
-	private static final double kTopTargetHeightIn = 98.0 + 2.0 + 9.0; // 98 to
-																		// rim,
-																		// +2 to
-																		// bottom
-																		// of
-																		// target,
-																		// +9 to
-																		// center
-																		// of
-																		// target
+	private static final double kTopTargetHeightIn = 104.125 + 6; // 104+1/8 to
+																	// the
+																	// bottom, 6
+																	// more
+																	// inches to
+																	// center
 
 	private TreeMap<Double, Double> rangeTable;
 
@@ -76,15 +76,12 @@ public class DaisyVision {
 	private Mat val;
 	private Point linePt1;
 	private Point linePt2;
-	private int horizontalOffsetPixels;
-	
-	private VisionFrame binFrame = new VisionFrame("bin");
 
-	public DaisyVision() {
+	public GoalTracking() {
 		this(false);
 	}
 
-	public DaisyVision(boolean debug) {
+	public GoalTracking(boolean debug) {
 		m_debugMode = debug;
 		morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
 				new Size(3, 3));
@@ -150,11 +147,8 @@ public class DaisyVision {
 			hue = new Mat(size, CvType.CV_8UC1);
 			sat = new Mat(size, CvType.CV_8UC1);
 			val = new Mat(size, CvType.CV_8UC1);
-			horizontalOffsetPixels = (int) Math.round(kShooterOffsetDeg
-					* (size.width / kHorizontalFOVDeg));
-			linePt1 = new Point(size.width / 2 + horizontalOffsetPixels,
-					size.height - 1);
-			linePt2 = new Point(size.width / 2 + horizontalOffsetPixels, 0);
+			linePt1 = new Point(size.width / 2, 0);
+			linePt2 = new Point(size.width / 2, size.height);
 		}
 		// Get the raw Mats for OpenCV
 		Mat input = rawImage;
@@ -195,18 +189,18 @@ public class DaisyVision {
 		Imgproc.morphologyEx(bin, bin, Imgproc.MORPH_CLOSE, morphKernel,
 				new Point(-1, -1), kHoleClosingIterations);
 
-		binFrame.show(bin);
-
 		// Find contours
 		contours = findConvexContours(bin);
-		System.out.println("found " + contours.length + " contours");
 		polygons = new ArrayList<Polygon>();
 		for (MatOfPoint2f c : contours) {
 			RotatedRect bounding = Imgproc.minAreaRect(c);
 			double ratio = ((double) bounding.size.width)
 					/ ((double) bounding.size.height);
-			//height and width are switched so that the height of the bounding box is the width of the goal
-			if (ratio > kMinRatio && ratio < kMaxRatio && bounding.size.height > kMinWidth && bounding.size.height < kMaxWidth) {
+			// height and width are switched so that the height of the bounding
+			// box is the width of the goal
+			if (ratio > kMinRatio && ratio < kMaxRatio
+					&& bounding.size.height > kMinWidth
+					&& bounding.size.height < kMaxWidth) {
 				MatOfPoint2f approxCurve = new MatOfPoint2f();
 				Imgproc.approxPolyDP(c, approxCurve, 20, true);
 				polygons.add(new Polygon(approxCurve, ratio));
@@ -216,7 +210,6 @@ public class DaisyVision {
 		Polygon square = null;
 		int highest = Integer.MAX_VALUE;
 
-		System.out.println("found " + polygons.size() + " possible polygons");
 		for (Polygon p : polygons) {
 			if (p.isConvex() && p.getNumVertices() == 4) {
 				// We passed the first test...we fit a rectangle to the polygon
@@ -243,15 +236,9 @@ public class DaisyVision {
 				if (numNearlyHorizontal >= 1 && numNearlyVertical == 2) {
 					Core.polylines(rawImage, p.getMatOfPointsList(), true,
 							new Scalar(255, 0, 0), 2);
-					Core.putText(rawImage, String.valueOf((double) Math.round(p
-							.getRatio() * 100) / 100d), p.getCenter(),
-							Core.FONT_HERSHEY_COMPLEX, 1, new Scalar(0, 0, 255));
 
-					Core.ellipse(rawImage, p.getCenter(), new Size(5, 5), 0, 0,
-							0, targetColor, 2);
-					if (p.getCenter().y < highest) // Because coord system is
-													// funny
-					{
+					if (p.getCenter().y < highest) { // y coordinates use 0 at
+														// the top
 						square = p;
 						highest = (int) p.getCenter().y;
 					}
@@ -264,15 +251,17 @@ public class DaisyVision {
 
 		if (square != null) {
 			double x = square.getCenter().x;
-			// x = (2 * (x / size.width())) - 1;
+			x = (2 * (x / size.width)) - 1;
 			double y = square.getCenter().y;
-			// y = -((2 * (y / size.height())) - 1);
+			y = -((2 * (y / size.height)) - 1);
 
 			double azimuth = this.boundAngle0to360Degrees(x * kHorizontalFOVDeg
 					/ 2.0 + heading - kShooterOffsetDeg);
 			double range = (kTopTargetHeightIn - kCameraHeightIn)
 					/ Math.tan((y * kVerticalFOVDeg / 2.0 + kCameraPitchDeg)
 							* Math.PI / 180.0);
+			double angle = Math.toDegrees(Math.atan2(kTopTargetHeightIn
+					- kShooterHeight, range));
 			double rpms = getRPMsForRange(range);
 
 			/*
@@ -289,10 +278,12 @@ public class DaisyVision {
 			System.out.println("y: " + y);
 			System.out.println("azimuth: " + azimuth);
 			System.out.println("range: " + range);
+			System.out.println("angle deg: " + angle);
 			System.out.println("rpms: " + rpms);
 			// }
 			Core.polylines(rawImage, square.getMatOfPointsList(), true,
 					targetColor, 7);
+			Core.putText(rawImage, String.valueOf(Math.round(angle)), square.getCenter(), Core.FONT_HERSHEY_COMPLEX, 1, new Scalar(255,0,0));
 		} else {
 
 			if (!m_debugMode) {
@@ -303,7 +294,8 @@ public class DaisyVision {
 		}
 
 		// Draw a crosshair
-		//Core.line(rawImage, linePt1, linePt2, targetColor, 2);
+		if (m_debugMode)
+			Core.line(rawImage, linePt1, linePt2, targetColor, 2);
 
 		return rawImage;
 	}
@@ -324,15 +316,12 @@ public class DaisyVision {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
 		// Create the widget
-		DaisyVision widget = new DaisyVision(true);
+		GoalTracking widget = new GoalTracking(true);
 
 		// Load the image
 		Mat rawImage = null;
 		rawImage = Highgui
 				.imread("/home/vmagro/workspace/JavaTest/sample1.png");
-
-		// shows the raw image before processing to eliminate the possibility
-		// that both may be the modified image.
 
 		Mat resultImage = null;
 
@@ -349,23 +338,30 @@ public class DaisyVision {
 
 		VisionFrame frame = new VisionFrame("result");
 		frame.show(resultImage);
-		
-		File imagesFolder = new File("/home/vmagro/Downloads/987vid/images");
-		ArrayList<String> files = new ArrayList<String>(Arrays.asList(imagesFolder.list()));
-		Collections.sort(files);
-		for(String file : files){
-			System.out.println("\n\nreading from "+file+"\n\n");
-			rawImage = Highgui.imread("/home/vmagro/Downloads/987vid/images/"+file);
-			resultImage = widget.processImage(rawImage);
-			frame.show(resultImage);
-			Highgui.imwrite("/home/vmagro/Downloads/987vid/processed/"+file, resultImage);
-			/*try {
-				Thread.sleep(100); //10fps
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}*/
+
+		boolean useVideoImages = true;
+		if (useVideoImages) {
+			File imagesFolder = new File("/home/vmagro/Downloads/987vid/images");
+			ArrayList<String> files = new ArrayList<String>(
+					Arrays.asList(imagesFolder.list()));
+			Collections.sort(files);
+			for (String file : files) {
+				System.out.println("\n\nreading from " + file + "\n\n");
+				rawImage = Highgui
+						.imread("/home/vmagro/Downloads/987vid/images/" + file);
+				resultImage = widget.processImage(rawImage);
+				frame.show(resultImage);
+				Highgui.imwrite("/home/vmagro/Downloads/987vid/processed/"
+						+ file, resultImage);
+				try {
+					Thread.sleep(100); // 10fps
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+
+			}
 		}
-		
+
 	}
 
 	public static MatOfPoint2f[] findConvexContours(Mat image) {
