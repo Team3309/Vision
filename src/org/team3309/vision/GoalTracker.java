@@ -24,7 +24,7 @@ import org.opencv.imgproc.Imgproc;
  * @author jrussell
  * @author vmagro
  */
-public class GoalTracking {
+public class GoalTracker {
 	private Scalar targetColor = new Scalar(255, 0, 0);
 
 	// Constants that need to be tuned
@@ -77,11 +77,11 @@ public class GoalTracking {
 	private Point linePt1;
 	private Point linePt2;
 
-	public GoalTracking() {
+	public GoalTracker() {
 		this(false);
 	}
 
-	public GoalTracking(boolean debug) {
+	public GoalTracker(boolean debug) {
 		m_debugMode = debug;
 		morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
 				new Size(3, 3));
@@ -316,7 +316,7 @@ public class GoalTracking {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
 		// Create the widget
-		GoalTracking widget = new GoalTracking(true);
+		GoalTracker widget = new GoalTracker(true);
 
 		// Load the image
 		Mat rawImage = null;
