@@ -1,5 +1,6 @@
 package org.team3309.vision;
 
+import java.awt.BorderLayout;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
@@ -7,20 +8,22 @@ import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JSlider;
+import javax.swing.event.ChangeListener;
 
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.highgui.Highgui;
 
-public class VisionFrame {
+public class VisionFrame extends JFrame{
 
-	private JFrame frame = null;
 	private JLabel label = null;
+	private JSlider slider = null;
 
 	public VisionFrame(String name) {
-		frame = new JFrame(name);
+		super(name);
 		label = new JLabel();
-		frame.setContentPane(label);
+		add(label);
 	}
 
 	public void show(Mat img){
@@ -31,9 +34,19 @@ public class VisionFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		if(!frame.isVisible()){
-			frame.pack();
-			frame.setVisible(true);
+		if(!isVisible()){
+			pack();
+			setVisible(true);
 		}
+	}
+	
+	public void addSlider(int min, int max, ChangeListener listener){
+		if(slider == null){
+			slider = new JSlider();
+			this.add(slider, BorderLayout.SOUTH);
+		}
+		slider.addChangeListener(listener);
+		slider.setMinimum(min);
+		slider.setMaximum(max);
 	}
 }

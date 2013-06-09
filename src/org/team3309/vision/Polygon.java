@@ -40,6 +40,13 @@ public class Polygon {
 		return list;
 	}
 	
+	public MatOfPoint2f getMatOfPoint2f(){
+		MatOfPoint2f mat = new MatOfPoint2f();
+		mat.alloc(points.length);
+		mat.fromArray(points);
+		return mat;
+	}
+	
 	public Point getCenter(){
 		return boundingBox.center;
 	}
