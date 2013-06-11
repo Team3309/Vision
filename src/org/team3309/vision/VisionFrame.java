@@ -17,6 +17,11 @@ import org.opencv.highgui.Highgui;
 
 public class VisionFrame extends JFrame{
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
 	private JLabel label = null;
 	private JSlider slider = null;
 

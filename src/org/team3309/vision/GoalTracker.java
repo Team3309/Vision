@@ -1,31 +1,25 @@
 package org.team3309.vision;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.TreeMap;
 
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfInt;
-import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
 import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.highgui.Highgui;
 import org.opencv.imgproc.Imgproc;
 
 /**
+ * This is the Friarbots vision code for 2013. Code loosely based on Miss Daisy
+ * 341's code for 2012.
  * 
- * @author jrussell
  * @author vmagro
  */
 public class GoalTracker {
-	private Scalar targetColor = new Scalar(255, 0, 0);
+	private Scalar targetColor = Colors.BLUE;
 
 	// Constants that need to be tuned
 	private static final double kNearlyHorizontalSlope = Math.tan(Math
@@ -34,7 +28,6 @@ public class GoalTracker {
 			.toRadians(90 - 20));
 	private static final int kMinWidth = 125;
 	private static final int kMaxWidth = 400;
-	private static final double kRangeOffset = 0.0;
 	private static final int kHoleClosingIterations = 9;
 	private static final int kHueThresh = 50 - 25;// 60-15 for daisy 2012
 	private static final int kSatThresh = 75; // 200 for daisy 2012
@@ -59,11 +52,9 @@ public class GoalTracker {
 																	// inches to
 																	// center
 
-	private TreeMap<Double, Double> rangeTable;
-
 	private boolean m_debugMode = false;
 
-	// Store JavaCV temporaries as members to reduce memory management during
+	// Store OpenCV temporaries as members to reduce memory management during
 	// processing
 	private Size size = null;
 	private MatOfPoint2f[] contours;
@@ -86,48 +77,6 @@ public class GoalTracker {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
 				new Size(3, 3));
-		// morphKernel = IplConvKernel.create(3, 3, 1, 1, Imgproc.CV_SHAPE_RECT,
-		// null);
-
-		rangeTable = new TreeMap<Double, Double>();
-		// rangeTable.put(110.0, 3800.0+kRangeOffset);
-		// rangeTable.put(120.0, 3900.0+kRangeOffset);
-		// rangeTable.put(130.0, 4000.0+kRangeOffset);
-		rangeTable.put(140.0, 3434.0 + kRangeOffset);
-		rangeTable.put(150.0, 3499.0 + kRangeOffset);
-		rangeTable.put(160.0, 3544.0 + kRangeOffset);
-		rangeTable.put(170.0, 3574.0 + kRangeOffset);
-		rangeTable.put(180.0, 3609.0 + kRangeOffset);
-		rangeTable.put(190.0, 3664.0 + kRangeOffset);
-		rangeTable.put(200.0, 3854.0 + kRangeOffset);
-		rangeTable.put(210.0, 4034.0 + kRangeOffset);
-		rangeTable.put(220.0, 4284.0 + kRangeOffset);
-		rangeTable.put(230.0, 4434.0 + kRangeOffset);
-		rangeTable.put(240.0, 4584.0 + kRangeOffset);
-		rangeTable.put(250.0, 4794.0 + kRangeOffset);
-		rangeTable.put(260.0, 5034.0 + kRangeOffset);
-		rangeTable.put(270.0, 5234.0 + kRangeOffset);
-
-		// DaisyExtensions.init();
-	}
-
-	public double getRPMsForRange(double range) {
-		double lowKey = -1.0;
-		double lowVal = -1.0;
-		for (double key : rangeTable.keySet()) {
-			if (range < key) {
-				double highVal = rangeTable.get(key);
-				if (lowKey > 0.0) {
-					double m = (range - lowKey) / (key - lowKey);
-					return lowVal + m * (highVal - lowVal);
-				} else
-					return highVal;
-			}
-			lowKey = key;
-			lowVal = rangeTable.get(key);
-		}
-
-		return 5234.0 + kRangeOffset;
 	}
 
 	public Goal processImage(Mat rawImage, VisionFrame resultFrame) {
@@ -167,11 +116,7 @@ public class GoalTracker {
 
 		// Threshold each component separately
 		// Hue
-		// NOTE: Red is at the end of the color space, so you need to OR
-		// together
-		// a thresh and inverted thresh in order to get points that are red
 		Imgproc.threshold(hue, bin, kHueThresh, 255, Imgproc.THRESH_BINARY);
-		// Imgproc.threshold(hue, hue, 60+15, 255, Imgproc.THRESH_BINARY_INV);
 
 		// Saturation
 		Imgproc.threshold(sat, sat, kSatThresh, 255, Imgproc.THRESH_BINARY);
@@ -236,7 +181,7 @@ public class GoalTracker {
 
 				if (numNearlyHorizontal >= 1 && numNearlyVertical == 2) {
 					Core.polylines(rawImage, p.getMatOfPointsList(), true,
-							new Scalar(255, 0, 0), 2);
+							Colors.BLUE, 2);
 
 					if (p.getCenter().y < highest) { // y coordinates use 0 at
 														// the top
@@ -244,9 +189,6 @@ public class GoalTracker {
 						highest = (int) p.getCenter().y;
 					}
 				}
-			} else {
-				Core.polylines(rawImage, p.getMatOfPointsList(), true,
-						new Scalar(0, 255, 255), 2);
 			}
 		}
 
@@ -267,8 +209,7 @@ public class GoalTracker {
 							* Math.PI / 180.0);
 			double angle = Math.toDegrees(Math.atan2(kTopTargetHeightIn
 					- kShooterHeight, range));
-			double rpms = getRPMsForRange(range);
-			
+
 			Goal target = new Goal(square, range, azimuth, angle);
 
 			System.out.println("Target found");
@@ -277,32 +218,24 @@ public class GoalTracker {
 			System.out.println("azimuth: " + azimuth);
 			System.out.println("range: " + range);
 			System.out.println("angle deg: " + angle);
-			System.out.println("rpms: " + rpms);
 			Core.polylines(rawImage, square.getMatOfPointsList(), true,
 					targetColor, 7);
 			Core.putText(rawImage, String.valueOf(Math.round(angle)),
 					square.getCenter(), Core.FONT_HERSHEY_COMPLEX, 1,
-					new Scalar(255, 0, 0));
+					Colors.BLUE);
 			if (resultFrame != null)
 				resultFrame.show(rawImage);
-			
+
 			return target;
 		} else {
-			if(resultFrame != null)
+			if (resultFrame != null)
 				resultFrame.show(rawImage);
 			return null;
 		}
 	}
 
 	private double boundAngle0to360Degrees(double angle) {
-		// Naive algorithm
-		while (angle >= 360.0) {
-			angle -= 360.0;
-		}
-		while (angle < 0.0) {
-			angle += 360.0;
-		}
-		return angle;
+		return angle % 360;
 	}
 
 }

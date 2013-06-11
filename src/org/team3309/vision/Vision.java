@@ -34,7 +34,7 @@ public class Vision {
 			// Load the image
 			Mat rawImage = null;
 			rawImage = Highgui
-					.imread("/home/vmagro/workspace/JavaTest/sample1.png");
+					.imread("goal_sample_987.png");
 			
 			VisionFrame frame = new VisionFrame("result");
 			tracker.processImage(rawImage, frame);

@@ -3,6 +3,8 @@ package org.team3309.vision;
 import java.awt.Color;
 import java.util.ArrayList;
 
+import javax.swing.JFrame;
+
 import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -27,22 +29,13 @@ public class FrisbeeTracker {
 	private static int MIN_HUE = 220;
 	private static int MIN_SAT = 170;
 	private static int MIN_VAL = 180;
-	private static final double kMinRatio = .75;
-	private static final double kMaxRatio = 1.25;
-	private static final int kMinWidth = 20;
-	private static final int kMaxWidth = 20;
-	private static final int kHoleClosingIterations = 9;
 
 	private ArrayList<Polygon> polygons;
 	private Size size;
-	private Mat morphKernel;
 	private Mat hsv, hue, sat, val, bin, result;
 
 	public FrisbeeTracker(boolean debug) {
 		this.debug = debug;
-
-		morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
-				new Size(3, 3));
 	}
 
 	public Frisbee processImage(Mat rawImage, VisionFrame frame) {
@@ -65,10 +58,6 @@ public class FrisbeeTracker {
 		sat = channels[1];
 		val = channels[2];
 
-		Highgui.imwrite("hue.png", hue);
-		Highgui.imwrite("sat.png", sat);
-		Highgui.imwrite("val.png", val);
-
 		Imgproc.threshold(hue, bin, MIN_HUE, 255, Imgproc.THRESH_BINARY);
 		//frame.show(bin);
 		Imgproc.threshold(sat, sat, MIN_SAT, 255, Imgproc.THRESH_BINARY);
@@ -80,8 +69,6 @@ public class FrisbeeTracker {
 		Core.bitwise_and(bin, sat, bin);
 		Core.bitwise_and(bin, val, bin);
 		
-		// Fill in any gaps using binary morphology
-		//Imgproc.morphologyEx(bin, bin, Imgproc.MORPH_CLOSE, morphKernel, new Point(-1, -1), kHoleClosingIterations);
 		//frame.show(bin);
 		
 		MatOfPoint2f[] contours = Utils.findConvexContours(bin);
@@ -97,7 +84,6 @@ public class FrisbeeTracker {
 			if(p.getNumVertices() > 6)
 				possible.add(p);
 		}
-		System.out.println("found "+possible.size()+" possible circles");
 		Polygon closest = null;
 		double closestY = 0;
 		for(Polygon p : possible){
@@ -118,7 +104,8 @@ public class FrisbeeTracker {
 			}
 		}
 		if(closest != null){
-			System.out.println("Found a target");
+			if(debug)
+				System.out.println("Found a target");
 			RotatedRect ellipse = Imgproc.fitEllipse(closest.getMatOfPoint2f());
 			MatOfPoint pts = new MatOfPoint();
 			ellipse.size.height /= 2;
@@ -130,6 +117,9 @@ public class FrisbeeTracker {
 			double range = (fovWidth/2)/Math.atan(Math.toRadians(kHorizontalFOVDeg));
 			Core.putText(result, String.valueOf(Math.round(range)), ellipse.center, Core.FONT_HERSHEY_COMPLEX, 1, Colors.RED);
 		}
+		else
+			if(debug)
+				System.out.println("Couldn't find a target");
 		
 		frame.show(result);
 		return null;
@@ -142,13 +132,13 @@ public class FrisbeeTracker {
 		// load the opencv native library
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
-		//Mat rawImage = Highgui.imread("/home/vmagro/workspace/Vision/frisbee_sample_1538.png");
-		Mat rawImage = Highgui.imread("/home/vmagro/workspace/Vision/frisbee_sample_27.png");
-		//Mat rawImage = Highgui.imread("/home/vmagro/workspace/Vision/perfect_circle.png");
+		Mat rawImage = Highgui.imread("frisbee_sample_1538.png");
+		//Mat rawImage = Highgui.imread("frisbee_sample_27.png");
 		
 		FrisbeeTracker tracker = new FrisbeeTracker(true);
 		
 		VisionFrame frame = new VisionFrame("Frisbee");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
 		tracker.processImage(rawImage, frame);
 	}
