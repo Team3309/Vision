@@ -27,36 +27,78 @@ public class Vision implements ChangeListener {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 	}
 
-	JSlider hue = new JSlider();
+/*	JSlider hue = new JSlider();
 	JSlider sat = new JSlider();
-	JSlider val = new JSlider();
+	JSlider val = new JSlider();*/
+    JSlider huemin = new JSlider();
+    JSlider satmin = new JSlider();
+    JSlider valmin = new JSlider();
+    JSlider huemax = new JSlider();
+    JSlider satmax = new JSlider();
+    JSlider valmax = new JSlider();
 
 	public Vision() {
-		JFrame h = new JFrame("h");
-		JFrame s = new JFrame("s");
-		JFrame v = new JFrame("v");
-		hue.setMaximum(255);
+/*		JFrame h = new JFrame("h");
+        JFrame s = new JFrame("s");
+        JFrame v = new JFrame("v");*/
+        JFrame hmin = new JFrame("hmin");
+        JFrame smin = new JFrame("smin");
+        JFrame vmin = new JFrame("vmin");
+        JFrame hmax = new JFrame("hmax");
+        JFrame smax = new JFrame("smax");
+        JFrame vmax = new JFrame("vmax");
+/*		hue.setMaximum(255);
 		sat.setMaximum(255);
-		val.setMaximum(255);
-		h.setSize(255, 50);
+		val.setMaximum(255);*/
+        huemin.setMaximum(255);
+        satmin.setMaximum(255);
+        valmin.setMaximum(255);
+        huemax.setMaximum(255);
+        satmax.setMaximum(255);
+        valmax.setMaximum(255);
+/*		h.setSize(255, 50);
 		s.setSize(255, 50);
-		v.setSize(255, 50);
-		h.add(hue);
-		s.add(sat);
-		v.add(val);
-		h.setVisible(true);
+		v.setSize(255, 50);*/
+        hmin.setSize(255, 50);
+        smin.setSize(255, 50);
+        vmin.setSize(255, 50);
+        hmax.setSize(255, 50);
+        smax.setSize(255, 50);
+        vmax.setSize(255, 50);
+/*		h.add(hue);
+        s.add(sat);
+        v.add(val);*/
+        hmin.add(huemin);
+        smin.add(satmin);
+        vmin.add(valmin);
+        hmax.add(huemax);
+        smax.add(satmax);
+        vmax.add(valmax);
+/*		h.setVisible(true);
 		s.setVisible(true);
-		v.setVisible(true);
+		v.setVisible(true);*/
+        hmin.setVisible(true);
+        smin.setVisible(true);
+        vmin.setVisible(true);
+        hmax.setVisible(true);
+        smax.setVisible(true);
+        vmax.setVisible(true);
 
-		hue.addChangeListener(this);
-		sat.addChangeListener(this);
-		val.addChangeListener(this);
+/*		hue.addChangeListener(this);
+        sat.addChangeListener(this);
+        val.addChangeListener(this);*/
+        huemin.addChangeListener(this);
+        satmin.addChangeListener(this);
+        valmin.addChangeListener(this);
+        huemax.addChangeListener(this);
+        satmax.addChangeListener(this);
+        valmax.addChangeListener(this);
 
 		GoalTracker tracker = new GoalTracker();
 
 		VisionFrame frame = new VisionFrame("result");
 
-		VideoCapture cam = new VideoCapture(1);
+		VideoCapture cam = new VideoCapture(0);
 
 		int width = (int) cam.get(Highgui.CV_CAP_PROP_FRAME_WIDTH);
 		int height = (int) cam.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT);
@@ -128,7 +170,7 @@ public class Vision implements ChangeListener {
 
 	@Override
 	public void stateChanged(ChangeEvent e) {
-		if (e.getSource().equals(hue)) {
+/*		if (e.getSource().equals(hue)) {
 			if(useMin)
 				GoalTracker.kHueMin = hue.getValue();
 			else
@@ -145,7 +187,25 @@ public class Vision implements ChangeListener {
 				GoalTracker.kValMin = val.getValue();
 			else
 				GoalTracker.kValMax = val.getValue();
-		}
+		}*/
+        if (e.getSource().equals(huemin)) {
+            GoalTracker.kHueMin = huemin.getValue();
+        }
+        if (e.getSource().equals(satmin)) {
+            GoalTracker.kSatMin = satmin.getValue();
+        }
+        if (e.getSource().equals(valmin)) {
+            GoalTracker.kValMin = valmin.getValue();
+        }
+        if (e.getSource().equals(huemax)) {
+            GoalTracker.kHueMax = huemax.getValue();
+        }
+        if (e.getSource().equals(satmax)) {
+            GoalTracker.kSatMax = satmax.getValue();
+        }
+        if (e.getSource().equals(valmax)) {
+            GoalTracker.kValMax = valmax.getValue();
+        }
 	}
 
 }

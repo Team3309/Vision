@@ -33,12 +33,12 @@ public class GoalTracker {
 	/*private static final int kHueThresh = 50 - 25;// 60-15 for daisy 2012
 	private static final int kSatThresh = 75; // 200 for daisy 2012
 	private static final int kValThresh = 200; // 55 for daisy 2012 */
-	public static int kHueMin = 77;// 60-15 for daisy 2012
-	public static int kHueMax = 96;
-	public static int kSatMin = 48; // 200 for daisy 2012
+	public static int kHueMin = 120;// 60-15 for daisy 2012
+	public static int kHueMax = 136;
+	public static int kSatMin = 0; // 200 for daisy 2012
 	public static int kSatMax = 255;
-	public static int kValMin = 112; // 55 for daisy 2012
-	public static int kValMax = 196;
+	public static int kValMin = 0; // 55 for daisy 2012
+	public static int kValMax = 255;
 	
 	
 	private static final double kMinRatio = .15; // .5 for daisy 2012
@@ -130,7 +130,7 @@ public class GoalTracker {
 		// Threshold each component separately
 		// Hue
 		//Imgproc.threshold(hue, bin, kHueMin, 255, Imgproc.THRESH_BINARY);
-		Core.inRange(hue, new Scalar(kHueMin), new Scalar(kHueMax), bin);
+		Core.inRange(hue, new Scalar(kHueMin), new Scalar(kHueMax), hue);
 		//hueFrame.show(bin);
 
 		// Saturation
@@ -140,20 +140,20 @@ public class GoalTracker {
 		// Value
 		//Imgproc.threshold(val, val, kValMin, 255, Imgproc.THRESH_BINARY);
 		Core.inRange(val, new Scalar(kValMin), new Scalar(kValMax), val);
-		
-		
-		/*satFrame.show(sat);
-		valFrame.show(val);*/
+
+        hueFrame.show(hue);
+		satFrame.show(sat);
+        valFrame.show(val);
 		
 
 		// Combine the results to obtain our binary image which should for the
 		// most
 		// part only contain pixels that we care about
-		Core.bitwise_and(hue, bin, bin);
+		Core.bitwise_or(hue, bin, bin);
 		Core.bitwise_and(bin, sat, bin);
 		Core.bitwise_and(bin, val, bin);
-		
-		bin = sat;
+
+/*		bin = hue;*/
 		
 		if (resultFrame != null)
 			resultFrame.show(bin);
@@ -252,8 +252,8 @@ public class GoalTracker {
 			Core.putText(rawImage, String.valueOf(Math.round(angle)),
 					square.getCenter(), Core.FONT_HERSHEY_COMPLEX, 1,
 					Colors.BLUE);
-			if (resultFrame != null)
-				resultFrame.show(rawImage);
+/*			if (resultFrame != null)
+				resultFrame.show(rawImage);*/
 
 			return target;
 		} else {
