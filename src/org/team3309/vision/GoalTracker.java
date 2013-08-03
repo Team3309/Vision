@@ -29,9 +29,18 @@ public class GoalTracker {
 	private static final int kMinWidth = 125;
 	private static final int kMaxWidth = 400;
 	private static final int kHoleClosingIterations = 9;
-	private static final int kHueThresh = 50 - 25;// 60-15 for daisy 2012
+	
+	/*private static final int kHueThresh = 50 - 25;// 60-15 for daisy 2012
 	private static final int kSatThresh = 75; // 200 for daisy 2012
-	private static final int kValThresh = 200; // 55 for daisy 2012
+	private static final int kValThresh = 200; // 55 for daisy 2012 */
+	public static int kHueMin = 77;// 60-15 for daisy 2012
+	public static int kHueMax = 96;
+	public static int kSatMin = 48; // 200 for daisy 2012
+	public static int kSatMax = 255;
+	public static int kValMin = 112; // 55 for daisy 2012
+	public static int kValMax = 196;
+	
+	
 	private static final double kMinRatio = .15; // .5 for daisy 2012
 	private static final double kMaxRatio = .75; // 1 for daisy 2012
 
@@ -78,6 +87,10 @@ public class GoalTracker {
 		morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
 				new Size(3, 3));
 	}
+	
+	private VisionFrame hueFrame = new VisionFrame("hue");
+	private VisionFrame satFrame = new VisionFrame("sat");
+	private VisionFrame valFrame = new VisionFrame("val");
 
 	public Goal processImage(Mat rawImage, VisionFrame resultFrame) {
 		double heading = 0.0;
@@ -116,13 +129,22 @@ public class GoalTracker {
 
 		// Threshold each component separately
 		// Hue
-		Imgproc.threshold(hue, bin, kHueThresh, 255, Imgproc.THRESH_BINARY);
+		//Imgproc.threshold(hue, bin, kHueMin, 255, Imgproc.THRESH_BINARY);
+		Core.inRange(hue, new Scalar(kHueMin), new Scalar(kHueMax), bin);
+		//hueFrame.show(bin);
 
 		// Saturation
-		Imgproc.threshold(sat, sat, kSatThresh, 255, Imgproc.THRESH_BINARY);
+		//Imgproc.threshold(sat, sat, kSatMin, 255, Imgproc.THRESH_BINARY);
+		Core.inRange(sat, new Scalar(kSatMin), new Scalar(kSatMax), sat);
 
 		// Value
-		Imgproc.threshold(val, val, kValThresh, 255, Imgproc.THRESH_BINARY);
+		//Imgproc.threshold(val, val, kValMin, 255, Imgproc.THRESH_BINARY);
+		Core.inRange(val, new Scalar(kValMin), new Scalar(kValMax), val);
+		
+		
+		/*satFrame.show(sat);
+		valFrame.show(val);*/
+		
 
 		// Combine the results to obtain our binary image which should for the
 		// most
@@ -130,10 +152,17 @@ public class GoalTracker {
 		Core.bitwise_and(hue, bin, bin);
 		Core.bitwise_and(bin, sat, bin);
 		Core.bitwise_and(bin, val, bin);
-
+		
+		bin = sat;
+		
+		if (resultFrame != null)
+			resultFrame.show(bin);
+		
 		// Fill in any gaps using binary morphology
 		Imgproc.morphologyEx(bin, bin, Imgproc.MORPH_CLOSE, morphKernel,
 				new Point(-1, -1), kHoleClosingIterations);
+		
+		
 
 		// Find contours
 		contours = Utils.findConvexContours(bin);
@@ -212,12 +241,12 @@ public class GoalTracker {
 
 			Goal target = new Goal(square, range, azimuth, angle);
 
-			System.out.println("Target found");
+			/*System.out.println("Target found");
 			System.out.println("x: " + x);
 			System.out.println("y: " + y);
 			System.out.println("azimuth: " + azimuth);
 			System.out.println("range: " + range);
-			System.out.println("angle deg: " + angle);
+			System.out.println("angle deg: " + angle);*/
 			Core.polylines(rawImage, square.getMatOfPointsList(), true,
 					targetColor, 7);
 			Core.putText(rawImage, String.valueOf(Math.round(angle)),
@@ -228,8 +257,7 @@ public class GoalTracker {
 
 			return target;
 		} else {
-			if (resultFrame != null)
-				resultFrame.show(rawImage);
+			
 			return null;
 		}
 	}
