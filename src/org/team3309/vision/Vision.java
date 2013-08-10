@@ -53,7 +53,8 @@ public class Vision implements ChangeListener {
                                (int)screenSize.getHeight() - screenInsets.bottom - screenInsets.top);
 
         hsvCalibration.setLocation(screenInsets.top, screenInsets.left);
-        hsvCalibration.setResizable(false);
+        //hsvCalibration.setResizable(false);
+        hsvCalibration.setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         int windowWidth = hsvCalibration.getWidth();
         int windowHeight = hsvCalibration.getHeight();
@@ -144,9 +145,9 @@ public class Vision implements ChangeListener {
 
 		GoalTracker tracker = new GoalTracker();
 
-		VisionFrame frame = new VisionFrame("result");
+		//VisionFrame frame = new VisionFrame("result");
 
-		VideoCapture cam = new VideoCapture(0);
+		VideoCapture cam = new VideoCapture(1);
 
 		int width = (int) cam.get(Highgui.CV_CAP_PROP_FRAME_WIDTH);
 		int height = (int) cam.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT);
