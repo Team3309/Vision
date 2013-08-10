@@ -130,15 +130,20 @@ public class GoalTracker {
         // Hue
         //Imgproc.threshold(hue, bin, kHueMin, 255, Imgproc.THRESH_BINARY);
         Core.inRange(hue, new Scalar(kHueMin), new Scalar(kHueMax), hue);
-        //hueFrame.show(bin);
+//        Imgproc.threshold(hue, hue, kHueMax, 255, Imgproc.THRESH_TOZERO_INV);
+//        Imgproc.threshold(hue, hue, kHueMin, 255, Imgproc.THRESH_TOZERO);
 
         // Saturation
         //Imgproc.threshold(sat, sat, kSatMin, 255, Imgproc.THRESH_BINARY);
         Core.inRange(sat, new Scalar(kSatMin), new Scalar(kSatMax), sat);
+//        Imgproc.threshold(sat, sat, kSatMax, 255, Imgproc.THRESH_TOZERO_INV);
+//        Imgproc.threshold(sat, sat, kSatMin, 255, Imgproc.THRESH_TOZERO);
 
         // Value
         //Imgproc.threshold(val, val, kValMin, 255, Imgproc.THRESH_BINARY);
         Core.inRange(val, new Scalar(kValMin), new Scalar(kValMax), val);
+//        Imgproc.threshold(val, val, kValMax, 255, Imgproc.THRESH_TOZERO_INV);
+//        Imgproc.threshold(val, val, kValMin, 255, Imgproc.THRESH_TOZERO);
 
 
         // Combine the results to obtain our binary image which should for the
