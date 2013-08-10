@@ -71,7 +71,7 @@ public class Vision implements ChangeListener {
         resFrame.setMaximumSize(new Dimension((int)(windowWidth*0.35), (int)(windowHeight*0.4)));
         VisionLabel oriFrame = new VisionLabel();
         oriFrame.setMaximumSize(new Dimension((int)(windowWidth*0.35), (int)(windowHeight*0.4)));
-
+        
 /*      hue.setMaximum(255);
         sat.setMaximum(255);
         val.setMaximum(255);*/
@@ -124,7 +124,7 @@ public class Vision implements ChangeListener {
 
         hsvCalibration.add(resFrame, 11);
         hsvCalibration.add(oriFrame, 12);
-
+        
 /*      hmin.setVisible(true);
         smin.setVisible(true);
         vmin.setVisible(true);

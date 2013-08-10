@@ -1,5 +1,6 @@
 package org.team3309.vision;
 
+import java.awt.Color;
 import java.util.ArrayList;
 
 import javax.swing.JFrame;
@@ -28,8 +29,8 @@ public class GoalTracker {
 			.toRadians(20));
 	private static final double kNearlyVerticalSlope = Math.tan(Math
 			.toRadians(90 - 20));
-	private static final int kMinWidth = 125;
-	private static final int kMaxWidth = 400;
+	private static final int kMinWidth = 0;//125;
+	private static final int kMaxWidth = 1000;//400;
 	private static final int kHoleClosingIterations = 9;
 	
 	/*private static final int kHueThresh = 50 - 25;// 60-15 for daisy 2012
@@ -43,8 +44,8 @@ public class GoalTracker {
 	public static int kValMax = 255;
 	
 	
-	private static final double kMinRatio = .15; // .5 for daisy 2012
-	private static final double kMaxRatio = .75; // 1 for daisy 2012
+	private static final double kMinRatio = 0;//.15; // .5 for daisy 2012
+	private static final double kMaxRatio = 1;//.75; // 1 for daisy 2012
 
 	private static final double kShooterOffsetDeg = 0; // the shooter may not be
 														// perfectly aligned
@@ -169,6 +170,7 @@ public class GoalTracker {
 
         // Find contours
         contours = Utils.findConvexContours(bin);
+        System.out.println("found "+contours.length+" contours");
         polygons = new ArrayList<Polygon>();
         for (MatOfPoint2f c : contours) {
             RotatedRect bounding = Imgproc.minAreaRect(c);
@@ -188,6 +190,7 @@ public class GoalTracker {
         Polygon square = null;
         int highest = Integer.MAX_VALUE;
 
+        System.out.println("found "+polygons.size()+" polygons");
         for (Polygon p : polygons) {
             if (p.isConvex() && p.getNumVertices() == 4) {
                 // We passed the first test...we fit a rectangle to the polygon
@@ -221,7 +224,10 @@ public class GoalTracker {
                         highest = (int) p.getCenter().y;
                     }
                 }
+                
             }
+            Core.polylines(rawImage, p.getMatOfPointsList(), true,
+                    Colors.fromColor(Color.yellow), 2);
         }
 
         // Draw a crosshair
