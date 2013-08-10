@@ -22,7 +22,8 @@ public class Utils {
 	
 	public static MatOfPoint2f[] findConvexContours(Mat image) {
 		ArrayList<MatOfPoint> contours = new ArrayList<MatOfPoint>();
-		Imgproc.findContours(image, contours, new Mat(), Imgproc.RETR_EXTERNAL,
+		Mat bin = image.clone();
+		Imgproc.findContours(bin, contours, new Mat(), Imgproc.RETR_EXTERNAL,
 				Imgproc.CHAIN_APPROX_TC89_KCOS);
 		ArrayList<MatOfPoint2f> results = new ArrayList<MatOfPoint2f>();
 		for (MatOfPoint contour : contours) {
