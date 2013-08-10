@@ -76,18 +76,18 @@ public class Vision implements ChangeListener {
         sat.setMaximum(255);
         val.setMaximum(255);*/
         hue.setMaximum(255);
-        hue.setUpperValue(255);
-        hue.setValue(0);
+        hue.setUpperValue(GoalTracker.kHueMax);
+        hue.setValue(GoalTracker.kHueMin);
         hue.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
         sat.setMaximum(255);
-        sat.setUpperValue(255);
-        sat.setValue(0);
+        sat.setUpperValue(GoalTracker.kSatMax);
+        sat.setValue(GoalTracker.kValMin);
         sat.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
         val.setMaximum(255);
-        val.setUpperValue(255);
-        val.setValue(0);
+        val.setUpperValue(GoalTracker.kValMax);
+        val.setValue(GoalTracker.kValMin);
         val.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
 
