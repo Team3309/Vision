@@ -1,15 +1,18 @@
 package org.team3309.vision;
 
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 
-import org.opencv.core.*;
-import org.opencv.core.Mat;
-import org.opencv.highgui.Highgui;
-import org.opencv.imgproc.Imgproc;
+import javax.swing.JFrame;
 
-import javax.imageio.ImageIO;
-import javax.swing.*;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
+import org.opencv.core.RotatedRect;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
 
 /**
  * This is the Friarbots vision code for 2013. Code loosely based on Miss Daisy
@@ -33,10 +36,10 @@ public class GoalTracker {
 	private static final int kSatThresh = 75; // 200 for daisy 2012
 	private static final int kValThresh = 200; // 55 for daisy 2012 */
 	public static int kHueMin = 0;// 60-15 for daisy 2012
-	public static int kHueMax = 255;
+	public static int kHueMax = 104;
 	public static int kSatMin = 0; // 200 for daisy 2012
-	public static int kSatMax = 255;
-	public static int kValMin = 0; // 55 for daisy 2012
+	public static int kSatMax = 189;
+	public static int kValMin = 255; // 55 for daisy 2012
 	public static int kValMax = 255;
 	
 	
@@ -163,8 +166,6 @@ public class GoalTracker {
         Imgproc.morphologyEx(bin, bin, Imgproc.MORPH_CLOSE, morphKernel,
                 new Point(-1, -1), kHoleClosingIterations);
 
-
-
         // Find contours
         contours = Utils.findConvexContours(bin);
         polygons = new ArrayList<Polygon>();
@@ -242,12 +243,12 @@ public class GoalTracker {
 
             Goal target = new Goal(square, range, azimuth, angle);
 
-			/*System.out.println("Target found");
+			System.out.println("Target found");
 			System.out.println("x: " + x);
 			System.out.println("y: " + y);
 			System.out.println("azimuth: " + azimuth);
 			System.out.println("range: " + range);
-			System.out.println("angle deg: " + angle);*/
+			System.out.println("angle deg: " + angle);
             Core.polylines(rawImage, square.getMatOfPointsList(), true,
                     targetColor, 7);
             Core.putText(rawImage, String.valueOf(Math.round(angle)),
@@ -256,9 +257,10 @@ public class GoalTracker {
 /*			if (resultFrame != null)
 				resultFrame.show(rawImage);*/
 
+            //draw(rawImage, calibrationWindow);
             return target;
         } else {
-
+        	//draw(rawImage, calibrationWindow);
             return null;
         }
     }
