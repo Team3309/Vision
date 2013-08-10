@@ -82,7 +82,7 @@ public class Vision implements ChangeListener {
 
         sat.setMaximum(255);
         sat.setUpperValue(GoalTracker.kSatMax);
-        sat.setValue(GoalTracker.kValMin);
+        sat.setValue(GoalTracker.kSatMin);
         sat.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
         val.setMaximum(255);
