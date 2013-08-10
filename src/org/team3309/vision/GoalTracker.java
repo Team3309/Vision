@@ -154,7 +154,8 @@ public class GoalTracker {
         valFrame.show(val);
         oriFrame.show(input);*/
 
-        draw(input, calibrationWindow);
+        drawBin(calibrationWindow);
+        //draw(rawImage, calibrationWindow);
 
 
 /*		bin = hue;*/
@@ -257,10 +258,10 @@ public class GoalTracker {
 /*			if (resultFrame != null)
 				resultFrame.show(rawImage);*/
 
-            //draw(rawImage, calibrationWindow);
+            draw(rawImage, calibrationWindow);
             return target;
         } else {
-        	//draw(rawImage, calibrationWindow);
+        	draw(rawImage, calibrationWindow);
             return null;
         }
     }
@@ -274,7 +275,6 @@ public class GoalTracker {
         VisionLabel hueLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(6);
         VisionLabel satLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(7);
         VisionLabel valLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(8);
-        VisionLabel resultLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(11);
         VisionLabel inputLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(12);
 
         Size hueSizeScaled = new Size(hueLabel.getMaximumSize().getWidth(),
@@ -283,8 +283,6 @@ public class GoalTracker {
                 satLabel.getMaximumSize().getHeight());
         Size valSizeScaled = new Size(valLabel.getMaximumSize().getWidth(),
                 valLabel.getMaximumSize().getHeight());
-        Size resultSizeScaled = new Size(resultLabel.getMaximumSize().getWidth(),
-                resultLabel.getMaximumSize().getHeight());
         Size inputSizeScaled = new Size(inputLabel.getMaximumSize().getWidth(),
                 inputLabel.getMaximumSize().getHeight());
 
@@ -293,19 +291,16 @@ public class GoalTracker {
             Mat hueScaled = new Mat(hueSizeScaled, CvType.CV_8UC1);
             Mat satScaled = new Mat(satSizeScaled, CvType.CV_8UC1);
             Mat valScaled = new Mat(valSizeScaled, CvType.CV_8UC1);
-            Mat resultScaled = new Mat(resultSizeScaled, CvType.CV_8UC1);
             Mat inputScaled = new Mat(inputSizeScaled, CvType.CV_8UC3);
 
             Imgproc.resize(hue, hueScaled, hueScaled.size(), 0, 0, Imgproc.INTER_AREA);
             Imgproc.resize(sat, satScaled, satScaled.size(), 0, 0, Imgproc.INTER_AREA);
             Imgproc.resize(val, valScaled, valScaled.size(), 0, 0, Imgproc.INTER_AREA);
-            Imgproc.resize(bin, resultScaled, resultScaled.size(), 0, 0, Imgproc.INTER_AREA);
             Imgproc.resize(input, inputScaled, inputScaled.size(), 0, 0, Imgproc.INTER_AREA);
 
             hueLabel.show(hueScaled);
             satLabel.show(satScaled);
             valLabel.show(valScaled);
-            resultLabel.show(resultScaled);
             inputLabel.show(inputScaled);
         }
         else
@@ -313,8 +308,24 @@ public class GoalTracker {
             hueLabel.show(hue);
             satLabel.show(sat);
             valLabel.show(val);
-            resultLabel.show(bin);
             inputLabel.show(input);
+        }
+    }
+    
+    private void drawBin(JFrame calibrationWindow){
+        VisionLabel resultLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(11);
+        Size resultSizeScaled = new Size(resultLabel.getMaximumSize().getWidth(),
+                resultLabel.getMaximumSize().getHeight());
+        if ((resultSizeScaled.height < bin.size().height) || (resultSizeScaled.width < bin.size().width))
+        {
+            Mat resultScaled = new Mat(resultSizeScaled, CvType.CV_8UC1);
+
+            Imgproc.resize(bin, resultScaled, resultScaled.size(), 0, 0, Imgproc.INTER_AREA);
+            resultLabel.show(resultScaled);
+        }
+        else
+        {
+            resultLabel.show(bin);
         }
     }
 }
