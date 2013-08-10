@@ -29,7 +29,7 @@ public class GoalTracker {
 			.toRadians(20));
 	private static final double kNearlyVerticalSlope = Math.tan(Math
 			.toRadians(90 - 20));
-	private static final int kMinWidth = 0;//125;
+	private static final int kMinWidth = 100;//125;
 	private static final int kMaxWidth = 1000;//400;
 	private static final int kHoleClosingIterations = 9;
 	
@@ -44,8 +44,8 @@ public class GoalTracker {
 	public static int kValMax = 255;
 	
 	
-	private static final double kMinRatio = 0;//.15; // .5 for daisy 2012
-	private static final double kMaxRatio = 1;//.75; // 1 for daisy 2012
+	private static final double kMinRatio = 0.5;//.15; // .5 for daisy 2012
+	private static final double kMaxRatio = 10;//.75; // 1 for daisy 2012
 
 	private static final double kShooterOffsetDeg = 0; // the shooter may not be
 														// perfectly aligned
