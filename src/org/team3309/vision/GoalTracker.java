@@ -40,8 +40,8 @@ public class GoalTracker {
 	public static int kValMax = 255;
 	
 	
-	private static final double kMinRatio = 0.5;//.15; // .5 for daisy 2012
-	private static final double kMaxRatio = 1;//.75; // 1 for daisy 2012
+	private static final double kMinRatio = .15; // .5 for daisy 2012
+	private static final double kMaxRatio = .75; // 1 for daisy 2012
 
 	private static final double kShooterOffsetDeg = 0; // the shooter may not be
 														// perfectly aligned
@@ -86,11 +86,6 @@ public class GoalTracker {
 		morphKernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT,
 				new Size(3, 3));
 	}
-	
-	private VisionFrame hueFrame = new VisionFrame("hue");
-	private VisionFrame satFrame = new VisionFrame("sat");
-	private VisionFrame valFrame = new VisionFrame("val");
-    private VisionFrame oriFrame = new VisionFrame("original");
 
     public Goal processImage(Mat rawImage, JFrame calibrationWindow) {
         double heading = 0.0;
@@ -149,14 +144,15 @@ public class GoalTracker {
         Core.bitwise_and(bin, sat, bin);
         Core.bitwise_and(bin, val, bin);
 
+
+
 /*        hueFrame.show(hue);
         satFrame.show(sat);
         valFrame.show(val);
         oriFrame.show(input);*/
 
-        
+        draw(input, calibrationWindow);
 
-        
 
 /*		bin = hue;*/
 
@@ -246,12 +242,12 @@ public class GoalTracker {
 
             Goal target = new Goal(square, range, azimuth, angle);
 
-			System.out.println("Target found");
+			/*System.out.println("Target found");
 			System.out.println("x: " + x);
 			System.out.println("y: " + y);
 			System.out.println("azimuth: " + azimuth);
 			System.out.println("range: " + range);
-			System.out.println("angle deg: " + angle);
+			System.out.println("angle deg: " + angle);*/
             Core.polylines(rawImage, square.getMatOfPointsList(), true,
                     targetColor, 7);
             Core.putText(rawImage, String.valueOf(Math.round(angle)),
@@ -260,16 +256,20 @@ public class GoalTracker {
 /*			if (resultFrame != null)
 				resultFrame.show(rawImage);*/
 
-            draw(input, calibrationWindow);
             return target;
         } else {
-        	draw(input, calibrationWindow);
+
             return null;
         }
     }
-    
-    private void draw(Mat input, JFrame calibrationWindow){
-    	VisionLabel hueLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(6);
+
+	private double boundAngle0to360Degrees(double angle) {
+		return angle % 360;
+	}
+
+    private void draw (Mat input, JFrame calibrationWindow)
+    {
+        VisionLabel hueLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(6);
         VisionLabel satLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(7);
         VisionLabel valLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(8);
         VisionLabel resultLabel = (VisionLabel)calibrationWindow.getContentPane().getComponent(11);
@@ -285,8 +285,8 @@ public class GoalTracker {
                 resultLabel.getMaximumSize().getHeight());
         Size inputSizeScaled = new Size(inputLabel.getMaximumSize().getWidth(),
                 inputLabel.getMaximumSize().getHeight());
-    	
-    	if ((inputSizeScaled.height < hue.size().height) || (inputSizeScaled.width < hue.size().width))
+
+        if ((inputSizeScaled.height < hue.size().height) || (inputSizeScaled.width < hue.size().width))
         {
             Mat hueScaled = new Mat(hueSizeScaled, CvType.CV_8UC1);
             Mat satScaled = new Mat(satSizeScaled, CvType.CV_8UC1);
@@ -315,9 +315,4 @@ public class GoalTracker {
             inputLabel.show(input);
         }
     }
-
-	private double boundAngle0to360Degrees(double angle) {
-		return angle % 360;
-	}
-
 }
