@@ -29,18 +29,18 @@ public class GoalTracker {
 			.toRadians(20));
 	private static final double kNearlyVerticalSlope = Math.tan(Math
 			.toRadians(90 - 20));
-	private static final int kMinWidth = 100;//125;
+	private static final int kMinWidth = 50;//125;
 	private static final int kMaxWidth = 1000;//400;
 	private static final int kHoleClosingIterations = 9;
 	
 	/*private static final int kHueThresh = 50 - 25;// 60-15 for daisy 2012
 	private static final int kSatThresh = 75; // 200 for daisy 2012
 	private static final int kValThresh = 200; // 55 for daisy 2012 */
-	public static int kHueMin = 0;// 60-15 for daisy 2012
+	public static int kHueMin = 37;// 60-15 for daisy 2012
 	public static int kHueMax = 104;
-	public static int kSatMin = 0; // 200 for daisy 2012
-	public static int kSatMax = 189;
-	public static int kValMin = 255; // 55 for daisy 2012
+	public static int kSatMin = 61; // 200 for daisy 2012
+	public static int kSatMax = 255;
+	public static int kValMin = 214; // 55 for daisy 2012
 	public static int kValMax = 255;
 	
 	
@@ -53,17 +53,22 @@ public class GoalTracker {
 	private static final double kShooterHeight = 20; // the height to the pivot
 														// point of the arm
 
-	private static final double kHorizontalFOVDeg = 47.0;
+	private static final double kHorizontalFOVDeg = 51.3;
 	private static final double kVerticalFOVDeg = 480.0 / 640.0 * kHorizontalFOVDeg;
-	private static final double kCameraHeightIn = 54.0;
-	private static final double kCameraPitchDeg = 21.0;
-	private static final double kTopTargetHeightIn = 104.125 + 6; // 104+1/8 to
+	private static final double kVerticalFovRad = Math.toRadians(kVerticalFOVDeg);
+	
+	private static final double kImgHeight = 480;
+	private static final double kCameraHeightIn = 24;//35.0;
+	private static final double kCameraPitchDeg = 0.0;
+	private static final double kTopTargetHeightIn = 47;//104.125 + 6; // 104+1/8 to
 																	// the
 																	// bottom, 6
 																	// more
 																	// inches to
 																	// center
 
+	private static final double kTargetWidthIn = 24.125; //rebound rumble target is 24+1/8
+	
 	private boolean m_debugMode = false;
 
 	// Store OpenCV temporaries as members to reduce memory management during
@@ -114,7 +119,7 @@ public class GoalTracker {
         }
         // Get the raw Mats for OpenCV
         Mat input = rawImage;
-
+        
         // Convert to HSV color space
         Imgproc.cvtColor(input, hsv, Imgproc.COLOR_BGR2HSV);
         ArrayList<Mat> channels = new ArrayList<Mat>();
@@ -163,7 +168,6 @@ public class GoalTracker {
         drawBin(calibrationWindow);
         //draw(rawImage, calibrationWindow);
 
-
 /*		bin = hue;*/
 
 /*        if (resultFrame != null)
@@ -175,7 +179,6 @@ public class GoalTracker {
 
         // Find contours
         contours = Utils.findConvexContours(bin);
-        System.out.println("found "+contours.length+" contours");
         polygons = new ArrayList<Polygon>();
         for (MatOfPoint2f c : contours) {
             RotatedRect bounding = Imgproc.minAreaRect(c);
@@ -195,7 +198,6 @@ public class GoalTracker {
         Polygon square = null;
         int highest = Integer.MAX_VALUE;
 
-        System.out.println("found "+polygons.size()+" polygons");
         for (Polygon p : polygons) {
             if (p.isConvex() && p.getNumVertices() == 4) {
                 // We passed the first test...we fit a rectangle to the polygon
@@ -247,9 +249,12 @@ public class GoalTracker {
 
             double azimuth = this.boundAngle0to360Degrees(x * kHorizontalFOVDeg
                     / 2.0 + heading - kShooterOffsetDeg);
-            double range = (kTopTargetHeightIn - kCameraHeightIn)
-                    / Math.tan((y * kVerticalFOVDeg / 2.0 + kCameraPitchDeg)
-                    * Math.PI / 180.0);
+//            double range = (kTopTargetHeightIn - kCameraHeightIn)
+//                    / Math.tan((y * kVerticalFOVDeg / 2.0 + kCameraPitchDeg)
+//                    * Math.PI / 180.0);
+            int diffHeightPx = (int) Math.abs((kImgHeight / 2) - square.getCenter().y);
+            double range = ((kImgHeight*(kTopTargetHeightIn - kCameraHeightIn)) / (2 * diffHeightPx)) / (Math.tan(kVerticalFovRad / 2));
+            
             double angle = Math.toDegrees(Math.atan2(kTopTargetHeightIn
                     - kShooterHeight, range));
 
@@ -263,7 +268,7 @@ public class GoalTracker {
 			System.out.println("angle deg: " + angle);
             Core.polylines(rawImage, square.getMatOfPointsList(), true,
                     targetColor, 7);
-            Core.putText(rawImage, String.valueOf(Math.round(angle)),
+            Core.putText(rawImage, String.valueOf(Math.round(range)), //Math.round(angle)),
                     square.getCenter(), Core.FONT_HERSHEY_COMPLEX, 1,
                     Colors.BLUE);
 /*			if (resultFrame != null)

@@ -195,6 +195,8 @@ public class Vision implements ChangeListener {
 		} else {
 			new Vision();
 		}
+		//GoalTracker tracker = new GoalTracker();
+		
 	}
 
 	public static void demoMain(GoalTracker tracker) {
