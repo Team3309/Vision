@@ -32,6 +32,8 @@ public class Vision implements ChangeListener {
     RangeSlider hue = new RangeSlider();
     RangeSlider sat = new RangeSlider();
     RangeSlider val = new RangeSlider();
+    RangeSlider can = new RangeSlider();
+    RangeSlider shape = new RangeSlider();
 
 	public Vision() {
 /*      JFrame hmin = new JFrame("hmin");
@@ -67,10 +69,12 @@ public class Vision implements ChangeListener {
         satFrame.setMaximumSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.35)));
         VisionLabel valFrame = new VisionLabel();
         valFrame.setMaximumSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.35)));
+        VisionLabel cannyFrame = new VisionLabel();
+        cannyFrame.setMaximumSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.35)));
         VisionLabel resFrame = new VisionLabel();
-        resFrame.setMaximumSize(new Dimension((int)(windowWidth*0.35), (int)(windowHeight*0.4)));
+        resFrame.setMaximumSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.35)));
         VisionLabel oriFrame = new VisionLabel();
-        oriFrame.setMaximumSize(new Dimension((int)(windowWidth*0.35), (int)(windowHeight*0.4)));
+        oriFrame.setMaximumSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.35)));
         
 /*      hue.setMaximum(255);
         sat.setMaximum(255);
@@ -90,6 +94,16 @@ public class Vision implements ChangeListener {
         val.setValue(GoalTracker.kValMin);
         val.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
+        can.setMaximum(255);
+        can.setUpperValue(GoalTracker.kCanMax);
+        can.setValue(GoalTracker.kCanMin);
+        can.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
+
+        shape.setMaximum(255);
+        shape.setUpperValue(GoalTracker.kCanMax);
+        shape.setValue(GoalTracker.kCanMin);
+        shape.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
+
 
         JLabel hueLabel = new JLabel("Hue", SwingConstants.CENTER);
         hueLabel.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
@@ -101,10 +115,25 @@ public class Vision implements ChangeListener {
         valLabel.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
         JLabel resultLabel = new JLabel("Result", SwingConstants.CENTER);
-        resultLabel.setPreferredSize(new Dimension((int)(windowWidth*0.35), (int)(windowHeight*0.02)));
+        resultLabel.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
+
+        JLabel cannyLabel = new JLabel("After Canny", SwingConstants.CENTER);
+        cannyLabel.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
         JLabel inputLabel = new JLabel("Input", SwingConstants.CENTER);
-        inputLabel.setPreferredSize(new Dimension((int)(windowWidth*0.35), (int)(windowHeight*0.02)));
+        inputLabel.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
+
+        JLabel blankLabel = new JLabel(" ", SwingConstants.CENTER);
+        blankLabel.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
+
+        JLabel blankLabel2 = new JLabel(" ", SwingConstants.CENTER);
+        blankLabel2.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
+
+        JLabel blankLabel3 = new JLabel(" ", SwingConstants.CENTER);
+        blankLabel3.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
+
+        JLabel blankLabel4 = new JLabel(" ", SwingConstants.CENTER);
+        blankLabel4.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
 
         hsvCalibration.add(hueLabel, 0);
@@ -120,15 +149,26 @@ public class Vision implements ChangeListener {
         hsvCalibration.add(valFrame, 8);
 
         hsvCalibration.add(resultLabel, 9);
-        hsvCalibration.add(inputLabel, 10);
+        hsvCalibration.add(cannyLabel, 10);
+        hsvCalibration.add(inputLabel, 11);
 
-        hsvCalibration.add(resFrame, 11);
-        hsvCalibration.add(oriFrame, 12);
+
+        hsvCalibration.add(blankLabel, 12);
+        hsvCalibration.add(can, 13);
+        hsvCalibration.add(blankLabel2, 14);
+
+        hsvCalibration.add(resFrame, 15);
+        hsvCalibration.add(cannyFrame, 16);
+        hsvCalibration.add(oriFrame, 17);
+
+        hsvCalibration.add(blankLabel3, 18);
+        hsvCalibration.add(shape, 19);
+        hsvCalibration.add(blankLabel4, 20);
         
 /*      hmin.setVisible(true);
         smin.setVisible(true);
         vmin.setVisible(true);
-        hmax.setVisible(true);
+        hmax.setVisible(true);          `````````````````````````````````````````````````````````````
         smax.setVisible(true);
         vmax.setVisible(true);*/
         hsvCalibration.setVisible(true);
@@ -142,12 +182,14 @@ public class Vision implements ChangeListener {
         hue.addChangeListener(this);
         sat.addChangeListener(this);
         val.addChangeListener(this);
+        can.addChangeListener(this);
+        shape.addChangeListener(this);
 
 		GoalTracker tracker = new GoalTracker();
 
 		//VisionFrame frame = new VisionFrame("result");
 
-		VideoCapture cam = new VideoCapture(1);
+		VideoCapture cam = new VideoCapture(0);
 
 		int width = (int) cam.get(Highgui.CV_CAP_PROP_FRAME_WIDTH);
 		int height = (int) cam.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT);
@@ -259,6 +301,14 @@ public class Vision implements ChangeListener {
         if (e.getSource().equals(val)) {
             GoalTracker.kValMin = val.getValue();
             GoalTracker.kValMax = val.getUpperValue();
+        }
+        if (e.getSource().equals(can)) {
+            GoalTracker.kCanMin = can.getValue();
+            GoalTracker.kCanMax = can.getUpperValue();
+        }
+        if (e.getSource().equals(shape)) {
+            GoalTracker.kShapeMin = shape.getValue();
+            GoalTracker.kShapeMax = shape.getUpperValue();
         }
 	}
 }
