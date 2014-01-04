@@ -225,6 +225,7 @@ public class Vision implements ChangeListener {
 				lastTime = System.currentTimeMillis();
 			}
 		}
+		cam.release();
 	}
 
 	/**

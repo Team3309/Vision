@@ -1,7 +1,7 @@
 package org.team3309.vision;
 
-import java.awt.Color;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JFrame;
 
@@ -10,12 +10,9 @@ import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
-import org.opencv.core.RotatedRect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.highgui.Highgui;
-import org.opencv.calib3d.Calib3d;
 
 /**
  * This is the Friarbots vision code for 2013. Code loosely based on Miss Daisy
@@ -78,6 +75,10 @@ public class GoalTracker {
 	private static final double kTargetWidthIn = 24.125; //rebound rumble target is 24+1/8
 
     private static final double sobel_kernel_size = 3;
+
+	private static final double EPSILON = 20;
+
+	private static final int DESIRED_LINES = 100;
 	
 	private boolean m_debugMode = false;
 
@@ -99,6 +100,10 @@ public class GoalTracker {
     private Mat lines;
 	private Point linePt1;
 	private Point linePt2;
+	
+	private int minimumHoughLineLength = 20;
+
+	private boolean hasHitDesiredLines;
 
 	public GoalTracker() {
 		this(false);
@@ -246,8 +251,14 @@ public class GoalTracker {
 
 
         lines = new Mat();
-        Imgproc.HoughLinesP(can, lines, 1, Math.PI/180, 80, 10, 30);
-
+        Imgproc.HoughLinesP(can, lines, 1, Math.PI/180, 80, kShapeMin, 30);
+        
+        /*
+         * Sort our lines by horizontal and vertical
+         */
+        List<Line> listOfHorizontalLines = new ArrayList<Line>();
+        List<Line> listOfVerticalLines = new ArrayList<Line>();
+        List<Line> listOfLines = new ArrayList<Line>();
         //check for lines intersecting this line within the frame
         int numLines = 0;
         for (int x = 0; x < lines.cols(); x++)
@@ -261,10 +272,307 @@ public class GoalTracker {
             Point start = new Point(x1, y1);
             Point end = new Point(x2, y2);
 
+            double slope = (y2 - y1) / (x2 - x1);
+            // The slope of the line determines the if it is horizontal or vertical
+            //
+            // vertical (More than 1)
+            //  |   / slope of 1
+            //  |  /
+            //  | /
+            //  |/
+            //  /--------- horizontal (less than 1)
+            if (Math.abs(slope) > 1) {
+            	listOfVerticalLines.add(new Line(start,end));
+            } else {
+            	listOfHorizontalLines.add(new Line(start,end));
+            }
+            //add to a secondary master hough line list
+        	listOfLines.add(new Line(start, end));
+        	//Draw our hough lines
             Core.line(input, start, end, new Scalar(255,0,0), 3);
         }
+        
+        //At start, it starts with a very small number of lines
+        //It increases the number of lines until it has enough lines
+        if (listOfLines.size() < DESIRED_LINES && !hasHitDesiredLines) {
+        	minimumHoughLineLength--;
+        } else {
+        	hasHitDesiredLines = true;
+        }
+        
+        /////////////////////METHOD 1////////////////////////////////
+        //Find the average 'y' value of the horizontal lines. Use this value to sort them into
+        //lines belonging to the top and bottom line of the box
+        double horizontalLinesAverageY = 0;
+        for (Line l: listOfHorizontalLines) {
+        	horizontalLinesAverageY += l.start.y + l.end.y;
+        }
+        horizontalLinesAverageY /= listOfHorizontalLines.size() * 2;
 
+        //Find the average 'x' value of the vertical lines. Use this value to sort them into
+        //lines belonging to the left and rigth line of the box
+        //This is unused.
+        double verticalLinesAverageX = 0;
+        for (Line l: listOfVerticalLines) {
+        	verticalLinesAverageX += l.start.y + l.end.y;
+        }
+        verticalLinesAverageX /= listOfVerticalLines.size() * 2;
+        
+        
+        //Find the averages of the lower and upper lines
+        double horizontalUpperX1 = 0;
+        double horizontalUpperY1 = 0; 
+        double horizontalUpperX2 = 0;
+        double horizontalUpperY2 = 0;
+        double numHorizontalUpper = 0;
+        
+        double horizontalLowerX1 = 0;
+        double horizontalLowerY1 = 0; 
+        double horizontalLowerX2 = 0;
+        double horizontalLowerY2 = 0;
+        double numHorizontalLower = 0;
+        
+        boolean flag0 = false;
+        boolean flag1 = false;
+        for (Line l : listOfHorizontalLines) {
+        	if (l.start.y > horizontalLinesAverageY) {
+        		horizontalUpperX1 += l.start.x;
+        		horizontalUpperY1 += l.start.y;
+        		horizontalUpperX2 += l.end.x;
+        		horizontalUpperY2 += l.end.y;
+        		
+        		numHorizontalUpper++;
+        		flag0 = true;
+        	} else {
+        		horizontalLowerX1 += l.start.x;
+        		horizontalLowerY1 += l.start.y;
+        		horizontalLowerX2 += l.end.x;
+        		horizontalLowerY2 += l.end.y;
+        		
+        		numHorizontalLower++;
+        		flag1 = true;
+        	}
+        	//if (flag0 && flag1) break;
+        }
+        
+        horizontalUpperX1 /= numHorizontalUpper;
+        horizontalUpperY1 /= numHorizontalUpper;
+        horizontalUpperX2 /= numHorizontalUpper;
+        horizontalUpperY2 /= numHorizontalUpper;
+        
+        horizontalLowerX1 /= numHorizontalLower;
+        horizontalLowerY1 /= numHorizontalLower;
+        horizontalLowerX2 /= numHorizontalLower;
+        horizontalLowerY2 /= numHorizontalLower;
+        
+        //construct these into points
+        Point horizontalUpperStart = new Point(horizontalUpperX1, horizontalUpperY1);
+        Point horizontalUpperEnd = new Point(horizontalUpperX2, horizontalUpperY2);
+        
 
+        Point horizontalLowerStart = new Point(horizontalLowerX1, horizontalLowerY1);
+        Point horizontalLowerEnd = new Point(horizontalLowerX2, horizontalLowerY2);
+        
+        Line horizontalUpperLine = new Line(horizontalUpperStart,horizontalUpperEnd);
+        Line horizontalLowerLine = new Line(horizontalLowerStart,horizontalLowerEnd);
+
+        //draw the lines to the image
+        Core.line(input, horizontalUpperStart, horizontalUpperEnd, new Scalar(0,0,255), 3);
+        Core.line(input, horizontalLowerStart, horizontalLowerEnd, new Scalar(0,0,255), 3);
+        
+        //Unused
+        double VerticalUpperX1 = 0;
+        double VerticalUpperY1 = 0; 
+        double VerticalUpperX2 = 0;
+        double VerticalUpperY2 = 0;
+        double numVerticalUpper = 0;
+        
+        double VerticalLowerX1 = 0;
+        double VerticalLowerY1 = 0; 
+        double VerticalLowerX2 = 0;
+        double VerticalLowerY2 = 0;
+        double numVerticalLower = 0;
+        
+        
+        for (Line l : listOfVerticalLines) {
+        	if (l.start.y > verticalLinesAverageX) {
+        		VerticalUpperX1 += l.start.x;
+        		VerticalUpperY1 += l.start.y;
+        		VerticalUpperX2 += l.end.x;
+        		VerticalUpperY2 += l.end.y;
+        		
+        		numVerticalUpper++;
+        		
+        	} else {
+        		VerticalLowerX1 += l.start.x;
+        		VerticalLowerY1 += l.start.y;
+        		VerticalLowerX2 += l.end.x;
+        		VerticalLowerY2 += l.end.y;
+        		
+        		numVerticalLower++;
+        	}
+        }
+        VerticalUpperX1 /= numVerticalUpper;
+        VerticalUpperY1 /= numVerticalUpper;
+        VerticalUpperX2 /= numVerticalUpper;
+        VerticalUpperY2 /= numVerticalUpper;
+        
+        VerticalLowerX1 /= numVerticalLower;
+        VerticalLowerY1 /= numVerticalLower;
+        VerticalLowerX2 /= numVerticalLower;
+        VerticalLowerY2 /= numVerticalLower;
+        
+        Point VerticalUpperStart = new Point(VerticalUpperX1, VerticalUpperY1);
+        Point VerticalUpperEnd = new Point(VerticalUpperX2, VerticalUpperY2);
+
+        Point VerticalLowerStart = new Point(VerticalLowerX1, VerticalLowerY1);
+        Point VerticalLowerEnd = new Point(VerticalLowerX2, VerticalLowerY2);
+        
+        Line verticalUpperLine = new Line(VerticalUpperStart,VerticalUpperEnd);
+        Line verticalLowerLine = new Line(VerticalLowerStart,VerticalLowerEnd);
+
+        Core.line(input, horizontalUpperStart, horizontalLowerStart, new Scalar(0,255,255), 3);
+        Core.line(input, horizontalUpperEnd, horizontalLowerEnd, new Scalar(0,255,255), 3);
+        
+        
+        
+        ////////////////////////////////METHOD 2//////////////////////////
+        
+        //List of corners. Corners occur where a vertical and horizontal line intersect.
+        List<PointAndConnectingLines> corners = new ArrayList<PointAndConnectingLines>();
+        for (Line hl: listOfHorizontalLines) {
+        	for (Line vl: listOfVerticalLines) {
+            	double distance = Math.sqrt(
+            			(hl.start.x - vl.start.x) *
+            			(hl.start.x - vl.start.x) + 
+            			(hl.start.y - vl.start.y) *
+            			(hl.start.y - vl.start.y));
+            	if (distance < EPSILON) {
+            		corners.add(new PointAndConnectingLines(
+            				new Point((hl.start.x + vl.start.x) / 2, (hl.start.y + vl.start.y) / 2),
+            				hl,
+            				vl));
+            		hl.addLinkedLine(vl);
+            		vl.addLinkedLine(hl);
+            	}
+            	
+            	distance = Math.sqrt(
+            			(hl.start.x - vl.end.x) *
+            			(hl.start.x - vl.end.x) + 
+            			(hl.start.y - vl.end.y) *
+            			(hl.start.y - vl.end.y));
+            	if (distance < EPSILON) {
+            		corners.add(new PointAndConnectingLines(
+            				new Point((hl.start.x + vl.start.x) / 2, (hl.end.y + vl.end.y) / 2),
+            				hl,
+            				vl));
+            		hl.addLinkedLine(vl);
+            		vl.addLinkedLine(hl);
+            	}
+            	
+            	distance = Math.sqrt(
+            			(hl.end.x - vl.end.x) *
+            			(hl.end.x - vl.end.x) + 
+            			(hl.end.y - vl.end.y) *
+            			(hl.end.y - vl.end.y));
+            	if (distance < EPSILON) {
+            		corners.add(new PointAndConnectingLines(
+            				new Point((hl.end.x + vl.end.x) / 2, (hl.end.y + vl.end.y) / 2),
+            				hl,
+            				vl));
+            		hl.addLinkedLine(vl);
+            		vl.addLinkedLine(hl);
+            	}
+            	
+            	distance = Math.sqrt(
+            			(hl.end.x - vl.start.x) *
+            			(hl.end.x - vl.start.x) + 
+            			(hl.end.y - vl.start.y) *
+            			(hl.end.y - vl.start.y));
+            	if (distance < EPSILON) {
+            		corners.add(new PointAndConnectingLines(
+            				new Point((hl.end.x + vl.end.x) / 2, (hl.start.y + vl.start.y) / 2),
+            				hl,
+            				vl));
+            		hl.addLinkedLine(vl);
+            		vl.addLinkedLine(hl);
+            	}
+            }
+        	
+        }
+        
+        //draw all corners.
+        for (PointAndConnectingLines p11: corners) Core.line(input, p11.p, p11.p, new Scalar(255,0,255), 7);
+
+        //Filter corners. Find point per corner.
+        List<PointAndConnectingLines> filteredCorners = new ArrayList<PointAndConnectingLines>(); //filtered bottom right corner points
+        int i = 0;
+        while (i < corners.size()) {
+        	PointAndConnectingLines pacl = corners.get(i);
+        	Point p = pacl.p;
+        	boolean isNewPoint = true;
+        	for (int j = 0; j < filteredCorners.size(); j++) {
+        		PointAndConnectingLines p1 = filteredCorners.get(j);
+        		Point p11 = p1.p;
+        		double distance = Math.sqrt((p.x - p11.x) * (p.x - p11.x) + (p.y - p11.y) * (p.y - p11.y));
+        		if (distance < EPSILON * 4) { //distance here is arbitrary at the moment
+        			isNewPoint = false;
+        		}
+        	}
+        	if (isNewPoint) {
+        		filteredCorners.add(pacl);
+        	}
+        	
+        	i++;
+        }
+        
+        for (PointAndConnectingLines p: filteredCorners) {
+            //Core.line(input, p.p, p.p, new Scalar(255,255,0), 7);
+    	}
+        
+        
+        if (filteredCorners.size() == 4) {
+        	double averageX = 0;
+        	double averageY = 0;
+        	for (PointAndConnectingLines pacl: filteredCorners) {
+        		Point p = pacl.p;
+        		averageX += p.x;
+        		averageY += p.y;
+        	}
+        	averageX /= 4;
+        	averageY /= 4;
+        	
+        	Point p1 = null;
+            Point p2 = null;
+            Point p3 = null;
+            Point p4 = null;
+            
+            
+            
+            for (PointAndConnectingLines pacl: filteredCorners) {
+            	Point p = pacl.p;
+        		if (averageX > p.x && averageY > p.y) p1 = p;
+        		if (averageX > p.x && averageY < p.y) p2 = p;
+        		if (averageX < p.x && averageY < p.y) p3 = p;
+        		if (averageX < p.x && averageY > p.y) p4 = p;
+        	}
+            if (p1 == null || p2 == null || p3 == null || p4 == null) {
+            	
+            } else {
+
+            	//Display area of rectangle in pixels squared.
+            	//Uses irregular polygon area formula
+                System.out.print("Area: ");
+                System.out.println(Math.abs(
+                		.5 * 
+                		(p1.x * p2.y + p2.x + p3.y + p3.x * p4.y + p4.x * p1.y - 
+                		 p2.x * p1.y - p3.x * p2.y - p4.x * p3.y - p1.x * p4.y)));
+            }
+        }
+        
+        
+        
+        System.gc();
     //    Imgproc.blur(bin, detected_edges, new Size(3, 3));
     //    Imgproc.Canny( detected_edges, detected_edges, kCanMin, kCanMax);
 /*        Imgproc.morphologyEx(detected_edges, detected_edges, Imgproc.MORPH_CLOSE, morphKernel,
