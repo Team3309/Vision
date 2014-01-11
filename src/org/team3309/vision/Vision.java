@@ -123,11 +123,11 @@ public class Vision implements ChangeListener {
         JLabel inputLabel = new JLabel("Input", SwingConstants.CENTER);
         inputLabel.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
-        JLabel blankLabel = new JLabel(" ", SwingConstants.CENTER);
-        blankLabel.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
+        JLabel fpsLabel = new JLabel("FPS:", SwingConstants.CENTER);
+        fpsLabel.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
-        JLabel blankLabel2 = new JLabel(" ", SwingConstants.CENTER);
-        blankLabel2.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
+        JLabel processLabel = new JLabel("Process Time", SwingConstants.CENTER);
+        processLabel.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
 
         JLabel blankLabel3 = new JLabel(" ", SwingConstants.CENTER);
         blankLabel3.setPreferredSize(new Dimension((int)(windowWidth*0.3), (int)(windowHeight*0.02)));
@@ -153,9 +153,9 @@ public class Vision implements ChangeListener {
         hsvCalibration.add(inputLabel, 11);
 
 
-        hsvCalibration.add(blankLabel, 12);
+        hsvCalibration.add(fpsLabel, 12);
         hsvCalibration.add(can, 13);
-        hsvCalibration.add(blankLabel2, 14);
+        hsvCalibration.add(processLabel, 14);
 
         hsvCalibration.add(resFrame, 15);
         hsvCalibration.add(cannyFrame, 16);
@@ -190,14 +190,46 @@ public class Vision implements ChangeListener {
 		//VisionFrame frame = new VisionFrame("result");
 
 		VideoCapture cam = new VideoCapture(0);
+		
+		
+
+		//cam.set(Highgui.CV_CAP_PROP_FRAME_WIDTH, 640 / 2);
+		//cam.set(Highgui.CV_CAP_PROP_FRAME_WIDTH, 480 / 2);
 
 		int width = (int) cam.get(Highgui.CV_CAP_PROP_FRAME_WIDTH);
 		int height = (int) cam.get(Highgui.CV_CAP_PROP_FRAME_HEIGHT);
 
-		long lastTime = 0;
+		long lastTime = System.currentTimeMillis();
+		long lastFpsTime = System.currentTimeMillis();
+		int processingSample = 0;
+		int fpsSample = 0;
+		int a = 30;
+		int[] processTimes = new int[a];
+		int[] frameTimes = new int[a];
 		Mat rawImage = new Mat(width, height, CvType.CV_32FC3);
 		while (cam.grab()) {
-			cam.retrieve(rawImage);
+			long startRetrieveMillis = System.currentTimeMillis();
+			long afterRetrieveMillis = System.currentTimeMillis();
+			while (afterRetrieveMillis - startRetrieveMillis < 2) {
+				startRetrieveMillis = System.currentTimeMillis();     
+				cam.retrieve(rawImage); //retrieve will wait until next frame is available
+				afterRetrieveMillis = System.currentTimeMillis();     
+			}
+			
+			long startMillis = System.currentTimeMillis();
+			long frameMillis = startMillis - lastFpsTime;
+			lastFpsTime = startMillis;
+			if (frameMillis != 0 && !GoalTracker.kDidDraw) {
+				frameTimes[fpsSample % a] = (int) (frameMillis);
+				if (fpsSample % a == a - 1) {
+					int averageFrameTime = 0;
+					for (int frameTime: frameTimes) averageFrameTime += frameTime;
+					averageFrameTime /= frameTimes.length;
+					if (averageFrameTime != 0) fpsLabel.setText("FPS: " + ((int) (10 * (1000F / averageFrameTime)) / 10F));
+				}
+				fpsSample++;
+			}
+			long startOfProcessing = System.currentTimeMillis();
 //			tracker.processImage(rawImage, frame);
             tracker.processImage(rawImage, hsvCalibration);
 			if(System.currentTimeMillis() - lastTime > 1000){
@@ -224,8 +256,19 @@ public class Vision implements ChangeListener {
 
 				lastTime = System.currentTimeMillis();
 			}
+			
+			long totalMillis = System.currentTimeMillis() - startMillis;
+			if (processingSample % a == a - 1) {
+				int averageProcessTime = 0;
+				for (int processTime: processTimes) averageProcessTime += processTime;
+				averageProcessTime /= processTimes.length;
+				processLabel.setText("Process Time: " + (averageProcessTime));
+			}
+			processTimes[processingSample % a] = (int) GoalTracker.kFrameMillis;
+			processingSample++;
 		}
 		cam.release();
+		rawImage.release();
 	}
 
 	/**

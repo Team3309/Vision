@@ -47,6 +47,8 @@ public class GoalTracker {
 
     public static int kShapeMin = 254;
     public static int kShapeMax = 255;
+    
+    public static int kFrameMillis = 0;
 	
 	
 	private static final double kMinRatio = 0.5;//.15; // .5 for daisy 2012
@@ -105,6 +107,11 @@ public class GoalTracker {
 
 	private boolean hasHitDesiredLines;
 
+	private long lastDraw = System.currentTimeMillis();
+
+
+	public static boolean kDidDraw;
+
 	public GoalTracker() {
 		this(false);
 	}
@@ -118,6 +125,7 @@ public class GoalTracker {
 
     public Goal processImage(Mat rawImage, JFrame calibrationWindow)
     {
+    	long startTime = System.currentTimeMillis();
         double heading = 0.0;
 
 		/*
@@ -570,9 +578,44 @@ public class GoalTracker {
             }
         }
         
+        List<Line> trulyVerticalLines = new ArrayList<Line>();
+        Line longestTrulyVerticalLine = null;
+        for (Line l: listOfVerticalLines) {
+        	//decided to go with Donny's approach over vector math because of pixels being an integer unit.
+        	double slope = (l.start.y - l.end.y) / (l.start.x - l.end.x);
+        	if (slope > 10) {
+        		trulyVerticalLines.add(l);
+        		if (longestTrulyVerticalLine == null) longestTrulyVerticalLine = l;
+        		double d1 = Math.sqrt((l.end.x - l.start.x) * (l.end.x - l.start.x) + (l.end.y - l.start.y) + (l.end.y - l.start.y));
+        		double d2 = Math.sqrt((longestTrulyVerticalLine.end.x - longestTrulyVerticalLine.start.x) * (longestTrulyVerticalLine.end.x - longestTrulyVerticalLine.start.x) + (longestTrulyVerticalLine.end.y - longestTrulyVerticalLine.start.y) + (longestTrulyVerticalLine.end.y - longestTrulyVerticalLine.start.y));
+        		if (d1 > d2) longestTrulyVerticalLine = l;
+        		Core.line(rawImage, l.start, l.end, new Scalar(255,255,255), 10);
+        	}
+        }
+        
+        if (longestTrulyVerticalLine != null) {
+        	Line l = longestTrulyVerticalLine;
+        	System.out.println(Math.sqrt((l.end.x - l.start.x) * (l.end.x - l.start.x) + (l.end.y - l.start.y) + (l.end.y - l.start.y)));
+        	//add calculation code here
+
+        }
+        
+        System.out.println("Truly Vertical Lines:" + trulyVerticalLines.size());
+        System.out.println("Time (ms): " + (System.currentTimeMillis() - startTime));
+        kFrameMillis = (int) (System.currentTimeMillis() - startTime);
+        long thisDraw = System.currentTimeMillis();
         
         
-        System.gc();
+        if (thisDraw - lastDraw  > 200) {
+        	kDidDraw = true;
+        	lastDraw = thisDraw;
+        	drawBin(calibrationWindow); //TODO MARKER
+            draw(rawImage, calibrationWindow); //TODO MARKER
+        } else {
+        	kDidDraw = false;
+        }
+
+
     //    Imgproc.blur(bin, detected_edges, new Size(3, 3));
     //    Imgproc.Canny( detected_edges, detected_edges, kCanMin, kCanMax);
 /*        Imgproc.morphologyEx(detected_edges, detected_edges, Imgproc.MORPH_CLOSE, morphKernel,
@@ -721,7 +764,7 @@ public class GoalTracker {
         valFrame.show(val);
         oriFrame.show(input);*/
 
-        drawBin(calibrationWindow);
+        //drawBin(calibrationWindow); //TODO MARKER
         //draw(rawImage, calibrationWindow);
 
 
@@ -839,7 +882,7 @@ public class GoalTracker {
         	draw(rawImage, calibrationWindow);
             return null;
         }*/
-    draw(rawImage, calibrationWindow);
+    //draw(rawImage, calibrationWindow); //TODO MARKER
     return null;
     }
 
